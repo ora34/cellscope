@@ -8,8 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,7 +65,7 @@ private enum class Tab(val title: String, val icon: ImageVector) {
 
 @Composable
 private fun Root(vm: CellViewModel) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     var granted by remember {
         mutableStateOf(
             listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE)
@@ -109,7 +110,7 @@ private fun Root(vm: CellViewModel) {
             } else when (tab) {
                 Tab.Online -> OnlineScreen(vm)
                 Tab.Charts -> ChartsScreen(vm)
-                Tab.Map -> Placeholder("Карта", "Здесь будет карта вышек. Нужна база вышек (например OpenCelliD) и библиотека карты (osmdroid / MapLibre).")
+                Tab.Map -> Placeholder("Карта", "Здесь будет карта вышек. Нужна база вышек (например OpenCelliD) и библиотека карты.")
                 Tab.Journal -> JournalScreen(vm)
                 Tab.Menu -> Placeholder("Меню", "Настройки, экспорт журнала, о приложении.")
             }
@@ -138,7 +139,6 @@ private fun OnlineScreen(vm: CellViewModel) {
                     }
                     Text("${srv.tech} | ${srv.band ?: "—"}", fontSize = 20.sp)
                     Spacer(Modifier.height(8.dp))
-                    // Поля в две колонки
                     srv.details.chunked(2).forEach { pair ->
                         Row(Modifier.fillMaxWidth()) {
                             pair.forEach { (k, v) ->
@@ -184,7 +184,6 @@ private fun NeighbourRow(c: CellRow) {
     }
 }
 
-/** Цвет индикатора: чем выше (ближе к 0) уровень, тем зеленее. */
 private fun signalColor(dbm: Int): Color = when {
     dbm >= -90 -> Color(0xFF2EB872)
     dbm >= -100 -> Color(0xFFB6D35A)
@@ -227,27 +226,3 @@ private fun ChartsScreen(vm: CellViewModel) {
 @Composable
 private fun JournalScreen(vm: CellViewModel) {
     val journal by vm.journal.collectAsStateWithLifecycle()
-    val fmt = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
-    if (journal.isEmpty()) {
-        Placeholder("Журнал", "Пока пусто. Записи появляются при каждой смене основной соты.")
-        return
-    }
-    LazyColumn(Modifier.fillMaxSize()) {
-        items(journal.reversed()) { s ->
-            val c = s.serving ?: return@items
-            Column(Modifier.padding(16.dp)) {
-                Text("${fmt.format(Date(s.time))}  ${c.tech} ${c.band ?: ""}", fontWeight = FontWeight.Bold)
-                Text(c.details.joinToString("  ") { "${it.first} ${it.second}" }, fontSize = 13.sp, color = Color.DarkGray)
-            }
-            HorizontalDivider()
-        }
-    }
-}
-
-@Composable
-private fun Placeholder(title: String, text: String) {
-    Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text(text, color = Color.DarkGray)
-    }
-}
